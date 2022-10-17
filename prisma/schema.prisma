@@ -2,10 +2,39 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+    provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Author {
+    id          String              @id @default(uuid())
+    firstName   String              @db.VarChar(255)
+    lastName    String              @db.VarChar(255)
+    email       String              @db.VarChar(255) @unique
+    createdAt   DateTime            @default(now())
+    updatedAt   DateTime            @updatedAt
+    books       BooksOnAuthors[]
+}
+
+model Book {
+    id          String              @id @default(uuid())
+    title       String              @db.VarChar(255)
+    synopsis    String              @db.VarChar(255)
+    createdAt   DateTime            @default(now())
+    updatedAt   DateTime            @updatedAt
+    authors     BooksOnAuthors[]
+}
+
+model BooksOnAuthors {
+    author      Author          @relation(fields: [authorId], references: [id])
+    authorId    String
+    book        Book            @relation(fields: [bookId], references: [id])
+    bookId      String
+    createdAt   DateTime        @default(now())
+    updatedAt   DateTime        @updatedAt
+    @@id([authorId, bookId])
 }
