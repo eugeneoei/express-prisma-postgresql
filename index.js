@@ -91,6 +91,12 @@ app.get("/books", async (req, res) => {
                             }
                         }
                     }
+                },
+                reviews: {
+                    select: {
+                        content: true,
+                        rating: true
+                    }
                 }
             }
         });
@@ -179,6 +185,12 @@ app.get("/books/:bookId", async (req, res) => {
                             }
                         }
                     }
+                },
+                reviews: {
+                    select: {
+                        content: true,
+                        rating: true
+                    }
                 }
             }
         });
@@ -191,7 +203,7 @@ app.get("/books/:bookId", async (req, res) => {
         } else {
             res.status(404).json({
                 error: "Book not found."
-            })
+            });
         }
     } catch (error) {
         console.log(error);
@@ -221,27 +233,28 @@ app.delete("/books/:bookId", async (req, res) => {
     }
 });
 
-// app.post("/books/:bookId/reviews", async (req, res) => {
-//     /*
-//         eg req.body
-//         {
-//             "content": "great book!",
-//             "rating": 1.1
-//         }
-//     */
-//     try {
-//         const review = await db.review.create({
-//             bookId: req.params.bookId,
-//             ...req.body
-//         });
-//         res.json(review);
-//     } catch (error) {
-//         console.log(error);
-//         res.json({
-//             error: error.errors[0].message
-//         });
-//     }
-// });
+app.post("/books/:bookId/reviews", async (req, res) => {
+    try {
+        const bookId = req.params.bookId;
+        const { content, rating } = req.body;
+        await prisma.review.create({
+            data: {
+                content,
+                rating,
+                bookId
+            }
+        });
+        res.redirect(`/books/${bookId}`);
+    } catch (error) {
+        console.log(error);
+        const { code, meta } = error;
+        console.log("Error creating review for book");
+        console.log("Error code:", code);
+        res.json({
+            error: meta.cause
+        });
+    }
+});
 
 app.listen(process.env.PORT, () =>
     console.log(
