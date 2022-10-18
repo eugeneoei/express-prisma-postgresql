@@ -31,9 +31,9 @@ model Book {
 }
 
 model BooksOnAuthors {
-    author      Author          @relation(fields: [authorId], references: [id])
+    author      Author          @relation(fields: [authorId], references: [id], onDelete: Cascade)
     authorId    String
-    book        Book            @relation(fields: [bookId], references: [id])
+    book        Book            @relation(fields: [bookId], references: [id], onDelete: Cascade)
     bookId      String
 
     @@id([authorId, bookId])

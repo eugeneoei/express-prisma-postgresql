@@ -17,29 +17,42 @@ app.get("/", (req, res) => {
 app.get("/authors", async (req, res) => {
     try {
         const authors = await prisma.author.findMany({
-            include: { books: true }
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                createdAt: true,
+                updatedAt: true,
+                books: {
+                    select: {
+                        book: {
+                            select: {
+                                id: true,
+                                title: true,
+                                synopsis: true
+                            }
+                        }
+                    }
+                }
+            }
         });
-        res.json(authors);
+        const formattedAuthors = authors.map(author => ({
+            ...author,
+            books: author.books.map(book => book.book)
+        }));
+        res.json(formattedAuthors);
     } catch (error) {
-        console.log(error);
-        const errorCode = error.code;
-        console.log("error getting authors");
-        console.log("Error code:", errorCode);
+        const { code, message } = error;
+        console.log("Error getting authors");
+        console.log("Error code:", code);
         res.json({
-            error: error.message
-        })
+            error: message
+        });
     }
 });
 
 app.post("/authors", async (req, res) => {
-    /*
-        eg req.body
-        {
-            "firstName": "Tony",
-            "lastName": "Stark",
-            "email": "tony.stark@email.com"
-        }
-    */
     try {
         const body = req.body;
         const author = await prisma.author.create({
@@ -47,119 +60,166 @@ app.post("/authors", async (req, res) => {
         });
         res.json(author);
     } catch (error) {
-        const errorCode = error.code;
-        console.log("error creating author");
-        console.log("Error code:", errorCode);
-        const isUniqueConstraintError = errorCode === "P2002";
+        const { code, message } = error;
+        const isUniqueConstraintError = code === "P2002";
+        console.log("Error creating author");
+        console.log("Error code:", code);
         res.json({
             error: isUniqueConstraintError
                 ? "Email has already been taken."
-                : error.message
+                : message
         });
     }
 });
 
-// app.get("/books", async (req, res) => {
-//     try {
-//         const books = await db.book.findAll({
-//             include: [
-//                 {
-//                     model: db.author,
-//                     attributes: ["id", "firstName", "lastName"],
-//                     through: { attributes: [] } // to ignore rows from join table
-//                 },
-//                 {
-//                     model: db.review,
-//                     attributes: ["id", "content", "rating"],
-//                     as: "reviews"
-//                 }
-//             ]
-//         });
-//         res.json(books);
-//     } catch (error) {
-//         const errorCode = error.code
-//         console.log("error getting books")
-//         console.log("Error code:", errorCode)
-//         res.json(error.message);
-//     }
-// });
+app.get("/books", async (req, res) => {
+    try {
+        const books = await prisma.book.findMany({
+            select: {
+                id: true,
+                title: true,
+                synopsis: true,
+                createdAt: true,
+                updatedAt: true,
+                authors: {
+                    select: {
+                        author: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        const formattedBooks = books.map(book => ({
+            ...book,
+            authors: book.authors.map(author => author.author)
+        }));
+        res.json(formattedBooks);
+    } catch (error) {
+        console.log(error);
+        const { code, message } = error;
+        console.log("Error getting books");
+        console.log("Error code:", code);
+        res.json({
+            error: message
+        });
+    }
+});
 
-// app.post("/books", async (req, res) => {
-//     /*
-//         eg req.body
-//         {
-//             "title": "Iron Man",
-//             "synopsis": "Millionaire, playboy, philanthropist",
-//             "authors": ["bf388937-30f4-4299-8e7b-e6aa389a41e1"] // array of author's id
-//         }
-//     */
-//     try {
-//         const { title, synopsis, authors } = req.body;
-//         const [book] = await db.book.findOrCreate({
-//             where: {
-//                 title,
-//                 synopsis
-//             }
-//         });
-//         const promises = authors.map(
-//             async author => await book.addAuthor(author)
-//         );
-//         await Promise.all(promises);
-//         res.json(book);
-//     } catch (error) {
-//         console.log(error);
-//         res.json({
-//             error: error.errors[0].message
-//         });
-//     }
-// });
+app.post("/books", async (req, res) => {
+    try {
+        const { title, synopsis, authors } = req.body;
+        const authorIds = authors.map(authorId => ({ authorId }));
+        const book = await prisma.book.create({
+            data: {
+                title,
+                synopsis,
+                authors: {
+                    create: authorIds // this creates rows in the join table
+                }
+            },
+            select: {
+                id: true,
+                title: true,
+                synopsis: true,
+                createdAt: true,
+                updatedAt: true,
+                authors: {
+                    select: {
+                        author: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        const formattedBook = {
+            ...book,
+            authors: book.authors.map(author => author.author)
+        };
+        res.json(formattedBook);
+    } catch (error) {
+        console.log(error);
+        const { code, message } = error;
+        console.log("Error creating book");
+        console.log("Error code:", code);
+        res.json({
+            error: message
+        });
+    }
+});
 
-// app.get("/books/:bookId", async (req, res) => {
-//     try {
-//         const book = await db.book.findByPk(req.params.bookId, {
-//             include: [
-//                 {
-//                     model: db.author,
-//                     attributes: ["id", "firstName", "lastName"],
-//                     through: { attributes: [] } // to ignore rows from join table
-//                 }
-//             ]
-//         });
-//         if (book) {
-//             res.json(book);
-//         } else {
-//             res.status(404).json({
-//                 error: "Book not found."
-//             });
-//         }
-//     } catch (error) {
-//         console.log(error);
-//         res.json({
-//             error: error.errors[0].message
-//         });
-//     }
-// });
+app.get("/books/:bookId", async (req, res) => {
+    try {
+        const book = await prisma.book.findUnique({
+            where: {
+                id: req.params.bookId
+            },
+            select: {
+                id: true,
+                title: true,
+                synopsis: true,
+                createdAt: true,
+                updatedAt: true,
+                authors: {
+                    select: {
+                        author: {
+                            select: {
+                                id: true,
+                                firstName: true,
+                                lastName: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        if (book) {
+            const formattedBook = {
+                ...book,
+                authors: book.authors.map(author => author.author)
+            };
+            res.json(formattedBook);
+        } else {
+            res.status(404).json({
+                error: "Book not found."
+            })
+        }
+    } catch (error) {
+        console.log(error);
+        const { code, message } = error;
+        console.log("Error finding book");
+        console.log("Error code:", code);
+        res.json({
+            error: message
+        });
+    }
+});
 
-// app.delete("/books/:bookId", async (req, res) => {
-//     try {
-//         const count = await db.book.destroy({
-//             where: { id: req.params.bookId }
-//         });
-//         if (count === 0) {
-//             res.status(400).json({
-//                 error: "The book you are trying to delete does not exist."
-//             });
-//         } else {
-//             console.log(count);
-//             res.status(204).send();
-//         }
-//     } catch (error) {
-//         console.log(error);
-//         res.json({
-//             error: error.errors[0].message
-//         });
-//     }
-// });
+app.delete("/books/:bookId", async (req, res) => {
+    try {
+        await prisma.book.delete({
+            where: { id: req.params.bookId }
+        });
+        res.status(204).send();
+    } catch (error) {
+        console.log(error);
+        const { code, meta } = error;
+        console.log("Error deleting book");
+        console.log("Error code:", code);
+        res.json({
+            error: meta.cause
+        });
+    }
+});
 
 // app.post("/books/:bookId/reviews", async (req, res) => {
 //     /*
