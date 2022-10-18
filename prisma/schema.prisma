@@ -35,8 +35,6 @@ model BooksOnAuthors {
     authorId    String
     book        Book            @relation(fields: [bookId], references: [id])
     bookId      String
-    createdAt   DateTime        @default(now())
-    updatedAt   DateTime        @updatedAt
 
     @@id([authorId, bookId])
 }
