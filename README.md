@@ -29,7 +29,7 @@ npx prisma migrate diff --from-schema-datamodel prisma/schema.prisma --to-schema
 
 This generates a `down.sql` file in the root folder. This generated `sql` file contains the `sql` commands that will undo the changes made in the `schema.prisma` file.
 
-**Step 4: Generate migration file**
+**Step 3: Generate migration file**
 
 Run the following command to generate a migration `sql` file:
 
@@ -38,9 +38,9 @@ Run the following command to generate a migration `sql` file:
 npx prisma migrate dev --name create-books-authors-join-table
 ```
 
-This will generate a migration folder based on the name you have given in the command above and in it, a `migration.sql` file and will also execute all `sql` statements in the file. To better manage migrations, move the generated down `sql` file from Step 3 in the root folder into this migration folder.
+This will generate a migration folder based on the name you have given in the command above and in it, a `migration.sql` file and will also execute all `sql` statements in the file. To better manage migrations, move the generated down `sql` file from Step 2 in the root folder into this migration folder.
 
-**Step 5: Undo migration based on a specific down file**
+**Step 4: Undo migration based on a specific down file**
 
 Run following command to undo changes declared in a specific down file:
 

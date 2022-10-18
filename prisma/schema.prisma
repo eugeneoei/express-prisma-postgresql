@@ -27,6 +27,7 @@ model Book {
     createdAt   DateTime            @default(now())
     updatedAt   DateTime            @updatedAt
     authors     BooksOnAuthors[]
+    reviews     Review[]
 }
 
 model BooksOnAuthors {
@@ -36,5 +37,16 @@ model BooksOnAuthors {
     bookId      String
     createdAt   DateTime        @default(now())
     updatedAt   DateTime        @updatedAt
+
     @@id([authorId, bookId])
+}
+
+model Review {
+    id          String      @id @default(uuid())
+    content     String      @db.VarChar(255)
+    rating      Int
+    book        Book        @relation(fields: [bookId], references: [id])
+    bookId      String
+    createdAt   DateTime    @default(now())
+    updatedAt   DateTime    @updatedAt
 }
